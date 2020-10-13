@@ -28,7 +28,6 @@ public class MainFragment extends Fragment {
         button_new.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.d("TAPPED", "onNewButtonTapped() is being executed in the fragment!");
                 onNewButtonTappedListener.onNewButtonTapped();
             }
         });

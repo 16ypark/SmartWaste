@@ -86,7 +86,6 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onNewButtonTapped() {
-        Log.d("TAPPED", "onNewButtonTapped() is being executed in the activity!");
         transaction = fragmentManager.beginTransaction();
         transaction.replace(R.id.frameLayout, fragmentAdd).commitAllowingStateLoss();
     }
