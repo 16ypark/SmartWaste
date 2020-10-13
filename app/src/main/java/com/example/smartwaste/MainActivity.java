@@ -11,15 +11,18 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
+import android.util.Log;
 import android.view.View;
 
 import android.view.Menu;
 import android.view.MenuItem;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity
+        implements MainFragment.OnNewButtonSelectedListener {
     private MapView mapView;
     private FragmentManager fragmentManager;
     private MainFragment fragmentMain;
+    private AddFragment fragmentAdd;
     private FragmentTransaction transaction;
 
     @Override
@@ -30,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
         fragmentManager = getSupportFragmentManager();
 
         fragmentMain = new MainFragment();
+        fragmentAdd = new AddFragment();
 
         transaction = fragmentManager.beginTransaction();
         transaction.replace(R.id.frameLayout, fragmentMain).commitAllowingStateLoss();
@@ -78,5 +82,12 @@ public class MainActivity extends AppCompatActivity {
     public void onLowMemory() {
         super.onLowMemory();
         mapView.onLowMemory();
+    }
+
+    @Override
+    public void onNewButtonSelected() {
+        Log.d("TAPPED", "onNewButtonSelected() is being executed in the activity!");
+        transaction = fragmentManager.beginTransaction();
+        transaction.replace(R.id.frameLayout, fragmentAdd).commitAllowingStateLoss();
     }
 }
