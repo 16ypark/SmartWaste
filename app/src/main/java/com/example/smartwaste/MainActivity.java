@@ -18,7 +18,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 public class MainActivity extends AppCompatActivity
-        implements MainFragment.OnNewButtonSelectedListener {
+        implements MainFragment.OnNewButtonTappedListener {
     private MapView mapView;
     private FragmentManager fragmentManager;
     private MainFragment fragmentMain;
@@ -85,8 +85,8 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
-    public void onNewButtonSelected() {
-        Log.d("TAPPED", "onNewButtonSelected() is being executed in the activity!");
+    public void onNewButtonTapped() {
+        Log.d("TAPPED", "onNewButtonTapped() is being executed in the activity!");
         transaction = fragmentManager.beginTransaction();
         transaction.replace(R.id.frameLayout, fragmentAdd).commitAllowingStateLoss();
     }

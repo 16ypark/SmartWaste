@@ -14,7 +14,7 @@ import androidx.navigation.fragment.NavHostFragment;
 
 public class MainFragment extends Fragment {
 
-    private OnNewButtonSelectedListener onNewButtonSelectedListener;
+    private OnNewButtonTappedListener onNewButtonTappedListener;
 
     @Override
     public View onCreateView(
@@ -28,8 +28,8 @@ public class MainFragment extends Fragment {
         button_new.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.d("TAPPED", "onNewButtonSelected() is being executed in the fragment!");
-                onNewButtonSelectedListener.onNewButtonSelected();
+                Log.d("TAPPED", "onNewButtonTapped() is being executed in the fragment!");
+                onNewButtonTappedListener.onNewButtonTapped();
             }
         });
 
@@ -40,23 +40,23 @@ public class MainFragment extends Fragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        if (context instanceof OnNewButtonSelectedListener) {
-            onNewButtonSelectedListener = (OnNewButtonSelectedListener) context;
+        if (context instanceof OnNewButtonTappedListener) {
+            onNewButtonTappedListener = (OnNewButtonTappedListener) context;
         } else {
             throw new RuntimeException(context.toString()
-                    + " must implement OnNewButtonSelectedListener");
+                    + " must implement OnNewButtonTappedListener");
         }
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
-        onNewButtonSelectedListener = null;
+        onNewButtonTappedListener = null;
     }
 
     // Container Activity must implement this interface
-    public interface OnNewButtonSelectedListener {
-        public void onNewButtonSelected();
+    public interface OnNewButtonTappedListener {
+        public void onNewButtonTapped();
     }
 
 }
