@@ -8,19 +8,35 @@ import com.google.android.material.snackbar.Snackbar;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 
+import android.util.Log;
 import android.view.View;
 
 import android.view.Menu;
 import android.view.MenuItem;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity
+        implements MainFragment.OnNewButtonTappedListener {
     private MapView mapView;
+    private FragmentManager fragmentManager;
+    private MainFragment fragmentMain;
+    private AddFragment fragmentAdd;
+    private FragmentTransaction transaction;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        fragmentManager = getSupportFragmentManager();
+
+        fragmentMain = new MainFragment();
+        fragmentAdd = new AddFragment();
+
+        transaction = fragmentManager.beginTransaction();
+        transaction.replace(R.id.frameLayout, fragmentMain).commitAllowingStateLoss();
 
         mapView = findViewById(R.id.map_view);
         mapView.onCreate(savedInstanceState);
@@ -66,5 +82,11 @@ public class MainActivity extends AppCompatActivity {
     public void onLowMemory() {
         super.onLowMemory();
         mapView.onLowMemory();
+    }
+
+    @Override
+    public void onNewButtonTapped() {
+        transaction = fragmentManager.beginTransaction();
+        transaction.replace(R.id.frameLayout, fragmentAdd).commitAllowingStateLoss();
     }
 }
