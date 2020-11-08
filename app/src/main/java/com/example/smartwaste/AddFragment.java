@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment;
 public class AddFragment extends Fragment {
 
     private OnApproveButtonTappedListener onApproveButtonTappedListener;
+    private OnBackButtonTappedListener onBackButtonTappedListener;
 
     @Override
     public View onCreateView(
@@ -21,13 +22,11 @@ public class AddFragment extends Fragment {
 
         View view = inflater.inflate(R.layout.fragment_add, container, false);
 
-        Button button_new = (Button) view.findViewById(R.id.button_approve);
-        button_new.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                onApproveButtonTappedListener.onApproveButtonTapped();
-            }
-        });
+        Button button_new = view.findViewById(R.id.button_approve);
+        button_new.setOnClickListener(v -> onApproveButtonTappedListener.onApproveButtonTapped());
+
+        Button button_back = view.findViewById(R.id.button_back);
+        button_back.setOnClickListener(v -> onBackButtonTappedListener.onBackButtonTapped());
 
         // Inflate the layout for this fragment
         return view;
@@ -38,9 +37,11 @@ public class AddFragment extends Fragment {
         super.onAttach(context);
         if (context instanceof OnApproveButtonTappedListener) {
             onApproveButtonTappedListener = (OnApproveButtonTappedListener) context;
+            onBackButtonTappedListener = (OnBackButtonTappedListener) context;
         } else {
             throw new RuntimeException(context.toString()
-                    + " must implement OnApproveButtonTappedListener");
+                    + " must implement OnApproveButtonTappedListener"
+                    + " must implement OnBackButtonTappedListener");
         }
     }
 
@@ -52,6 +53,11 @@ public class AddFragment extends Fragment {
 
     // Container Activity must implement this interface
     public interface OnApproveButtonTappedListener {
-        public void onApproveButtonTapped();
+        void onApproveButtonTapped();
+    }
+
+    // Container Activity must implement this interface
+    public interface OnBackButtonTappedListener {
+        void onBackButtonTapped();
     }
 }
