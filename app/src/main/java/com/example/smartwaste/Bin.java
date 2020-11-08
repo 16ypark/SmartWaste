@@ -1,9 +1,7 @@
 package com.example.smartwaste;
 
-import com.google.firebase.database.IgnoreExtraProperties;
 import com.naver.maps.geometry.LatLng;
 
-@IgnoreExtraProperties
 public class Bin {
 
     public Double lat;
