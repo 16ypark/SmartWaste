@@ -6,16 +6,18 @@ public class Bin {
 
     public Double lat;
     public Double lng;
-    public BinType binType;
+    public BinType[] binType;
+    public String binTypeString;
 
     public Bin() {
         // Default constructor required for calls to DataSnapshot.getValue(Bin.class)
     }
 
-    public Bin(LatLng binLocation, BinType binType) {
+    public Bin(LatLng binLocation, BinType[] binType) {
         this.lat = binLocation.latitude;
         this.lng = binLocation.longitude;
         this.binType = binType;
+        this.binTypeString = toBinTypeString();
     }
 
     public Double getLat() {
@@ -35,10 +37,10 @@ public class Bin {
     }
 
     public String getBinType() {
-        return binType.name();
+        return binTypeString;
     }
 
-    public void setBinType(BinType binType) {
+    public void setBinType(BinType[] binType) {
         this.binType = binType;
     }
 
@@ -47,12 +49,21 @@ public class Bin {
         return "Bin{" +
                 "lat='" + lat + '\'' +
                 ", lng='" + lng + '\'' +
-                ", binType='" + binType.name() + '\'' +
+                ", binType='" + binTypeString + '\'' +
                 '}';
+    }
+
+    public String toBinTypeString() {
+        String binTypeString = "";
+        for(BinType b : binType) {
+            binTypeString += b.name();
+            binTypeString += " ";
+        }
+        return binTypeString;
     }
 }
 
 enum BinType {
 
-    NORMAL, GLASS, CAN, PLASTIC
+    NORMAL, RECYCLE, LARGE
 }
