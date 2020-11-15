@@ -35,6 +35,9 @@ import com.naver.maps.map.util.FusedLocationSource;
 import android.widget.Toast;
 import com.google.firebase.database.DatabaseReference;
 
+import java.util.Arrays;
+import java.util.HashSet;
+
 public class MainActivity<NMapLocationManager> extends AppCompatActivity
         implements MainFragment.OnNewButtonTappedListener, AddFragment.OnApproveButtonTappedListener, AddFragment.OnBackButtonTappedListener,
         OnMapReadyCallback,LocationListener {
@@ -238,7 +241,8 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         naverMap.moveCamera(CameraUpdate.scrollTo(locationOverlay.getPosition())
             .animate(CameraAnimation.Easing, 1000));
 
-        writeNewBin(new Bin(currentLocationMarker.getPosition(), BinType.NORMAL));
+        writeNewBin(new Bin(currentLocationMarker.getPosition(),
+                new HashSet<BinType>(Arrays.asList(BinType.NORMAL, BinType.LARGE))));
     }
 
     @Override
