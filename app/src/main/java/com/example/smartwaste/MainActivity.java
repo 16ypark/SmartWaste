@@ -244,8 +244,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         naverMap.moveCamera(CameraUpdate.scrollTo(locationOverlay.getPosition())
             .animate(CameraAnimation.Easing, 1000));
 
-        writeNewBin(new Bin(currentLocationMarker.getPosition(),
-                new HashSet<BinType>(Arrays.asList(BinType.NORMAL, BinType.LARGE))));
+        writeNewBin(new Bin(currentLocationMarker.getPosition(), BinType.NORMAL));
     }
 
     @Override

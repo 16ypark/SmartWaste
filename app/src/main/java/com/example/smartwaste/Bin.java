@@ -2,24 +2,20 @@ package com.example.smartwaste;
 
 import com.naver.maps.geometry.LatLng;
 
-import java.util.HashSet;
-
 public class Bin {
 
     public Double lat;
     public Double lng;
-    public HashSet<BinType> binType;
-    public String binTypeString;
+    public BinType binType;
 
     public Bin() {
         // Default constructor required for calls to DataSnapshot.getValue(Bin.class)
     }
 
-    public Bin(LatLng binLocation, HashSet<BinType> binType) {
+    public Bin(LatLng binLocation, BinType binType) {
         this.lat = binLocation.latitude;
         this.lng = binLocation.longitude;
         this.binType = binType;
-        this.binTypeString = toBinTypeString();
     }
 
     public Double getLat() {
@@ -38,11 +34,7 @@ public class Bin {
         this.lng = lng;
     }
 
-    public String getBinType() {
-        return binTypeString;
-    }
-
-    public void setBinType(HashSet<BinType> binType) {
+    public void setBinType(BinType binType) {
         this.binType = binType;
     }
 
@@ -51,21 +43,13 @@ public class Bin {
         return "Bin{" +
                 "lat='" + lat + '\'' +
                 ", lng='" + lng + '\'' +
-                ", binType='" + binTypeString + '\'' +
+                ", binType='" + binType.name() + '\'' +
                 '}';
     }
 
-    public String toBinTypeString() {
-        String binTypeString = "";
-        for(BinType b : binType) {
-            binTypeString += b.name();
-            binTypeString += " ";
-        }
-        return binTypeString;
-    }
 }
 
 enum BinType {
 
-    NORMAL, RECYCLE, LARGE
+    NORMAL, RECYCLE
 }
