@@ -2,19 +2,17 @@ package com.example.smartwaste;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
-import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
-import androidx.navigation.fragment.NavHostFragment;
 
 public class MainFragment extends Fragment {
 
     private OnNewButtonTappedListener onNewButtonTappedListener;
+    private OnNewButtonTappedListener2 onNewButtonTappedListener2;
 
     @Override
     public View onCreateView(
@@ -31,7 +29,14 @@ public class MainFragment extends Fragment {
                 onNewButtonTappedListener.onNewButtonTapped();
             }
         });
-
+        Button button_delete = (Button) view.findViewById(R.id.button_delete);
+        button_delete.setVisibility(View.INVISIBLE);
+        button_delete.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onNewButtonTappedListener2.onNewButtonTapped2();
+            }
+        });
         // Inflate the layout for this fragment
         return view;
     }
@@ -41,6 +46,9 @@ public class MainFragment extends Fragment {
         super.onAttach(context);
         if (context instanceof OnNewButtonTappedListener) {
             onNewButtonTappedListener = (OnNewButtonTappedListener) context;
+        }
+        if (context instanceof OnNewButtonTappedListener2) {
+            onNewButtonTappedListener2 = (OnNewButtonTappedListener2) context;
         } else {
             throw new RuntimeException(context.toString()
                     + " must implement OnNewButtonTappedListener");
@@ -51,11 +59,15 @@ public class MainFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
         onNewButtonTappedListener = null;
+        onNewButtonTappedListener2 = null;
+
     }
 
     // Container Activity must implement this interface
     public interface OnNewButtonTappedListener {
         public void onNewButtonTapped();
     }
-
+    public interface OnNewButtonTappedListener2 {
+        public void onNewButtonTapped2();
+    }
 }

@@ -8,41 +8,43 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.naver.maps.geometry.LatLng;
-import com.naver.maps.map.CameraAnimation;
-import com.naver.maps.map.MapView;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
+import android.view.View;
+import android.widget.Button;
+import android.widget.Toast;
 
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
-import com.naver.maps.map.NaverMap;
-import com.naver.maps.map.OnMapReadyCallback;
-import com.naver.maps.map.overlay.Marker;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.PermissionChecker;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
+
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import com.naver.maps.geometry.LatLng;
+import com.naver.maps.map.CameraAnimation;
 import com.naver.maps.map.CameraUpdate;
 import com.naver.maps.map.LocationTrackingMode;
+import com.naver.maps.map.MapView;
+import com.naver.maps.map.NaverMap;
+import com.naver.maps.map.OnMapReadyCallback;
 import com.naver.maps.map.UiSettings;
+import com.naver.maps.map.overlay.InfoWindow;
 import com.naver.maps.map.overlay.LocationOverlay;
+import com.naver.maps.map.overlay.Marker;
+import com.naver.maps.map.overlay.Overlay;
 import com.naver.maps.map.util.FusedLocationSource;
-import android.widget.Toast;
-import com.google.firebase.database.DatabaseReference;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 
 public class MainActivity<NMapLocationManager> extends AppCompatActivity
-        implements MainFragment.OnNewButtonTappedListener, AddFragment.OnApproveButtonTappedListener, AddFragment.OnBackButtonTappedListener,
-        OnMapReadyCallback,LocationListener {
-
+        implements MainFragment.OnNewButtonTappedListener, MainFragment.OnNewButtonTappedListener2, AddFragment.OnApproveButtonTappedListener, AddFragment.OnBackButtonTappedListener,
+        OnMapReadyCallback,LocationListener,Overlay.OnClickListener {
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1000;
     private static final String TAG = "MainActivity";
     private MapView mapView;
@@ -62,7 +64,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
     private Marker currentLocationMarker;
     private boolean isCreatingNewBin = false;
     private ArrayList<Marker> normalBinMarkerArray = new ArrayList<Marker>();
-
+    private InfoWindow infoWindow;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,6 +83,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         readBin();
     }
+
 
     public void onRequestPermissionsResult(int requestCode,
                                            @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -208,11 +211,24 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         currentLocationMarker.setPosition(locationOverlay.getPosition());
         currentLocationMarker.setMap(naverMap);
         isCreatingNewBin = true;
+        infoWindow.close();
 
         naverMap.moveCamera(CameraUpdate.scrollTo(locationOverlay.getPosition())
             .animate(CameraAnimation.Easing, 200));
     }
+    @Override
+    public void onNewButtonTapped2() {
+        infoWindow.close();
+        LocationOverlay locationOverlay = naverMap.getLocationOverlay();
+        locationOverlay.setVisible(false);
+        Button button =findViewById(R.id.button_delete);
+        if(button.getVisibility()==View.VISIBLE){
+            button.setVisibility(View.INVISIBLE);      }
+///we have to delete marker
 
+        naverMap.moveCamera(CameraUpdate.scrollTo(locationOverlay.getPosition())
+                .animate(CameraAnimation.Easing, 200));
+    }
 
     @Override
     public void onMapReady(@NonNull NaverMap naverMap) {
@@ -229,6 +245,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
                     currentLocationMarker.setPosition(new LatLng(naverMap.getCameraPosition().target.latitude, naverMap.getCameraPosition().target.longitude));
                 }
             });
+
     }
 
     @Override
@@ -285,13 +302,36 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
                     double lat = postSnapshot.child("lat").getValue(Double.class);
                     double lng = postSnapshot.child("lng").getValue(Double.class);
                     String binType = postSnapshot.child("binType").getValue(String.class);
-
                     Marker marker = new Marker();
                     marker.setPosition(new LatLng(lat, lng));
                     Log.w("FireBaseData", "lat" + lat);
                     Log.w("FireBaseData", "lng" + lng);
                     marker.setMap(naverMap);
                     normalBinMarkerArray.add(marker);
+                    infoWindow = new InfoWindow();
+                    infoWindow.setAdapter(new InfoWindow.DefaultViewAdapter(getApplicationContext()) {
+                        @NonNull
+                        @Override
+                        protected View getContentView(@NonNull InfoWindow infoWindow) {
+                            Marker marker = infoWindow.getMarker();
+                            View view = View.inflate(MainActivity.this, R.layout.view_info_window, null);
+                            return view;
+                        }
+                    });
+                     Overlay.OnClickListener listener = overlay -> {
+                         if (overlay instanceof Marker) {
+                              Button button =findViewById(R.id.button_delete);
+                              if(button.getVisibility()==View.VISIBLE){
+                                  button.setVisibility(View.INVISIBLE);
+                                  infoWindow.close();
+                              }else{
+                                button.setVisibility(View.VISIBLE);
+                                infoWindow.open(marker); }
+                              return true;
+                        }
+                        return false;
+                    };
+                    marker.setOnClickListener(listener);
                 }
             }
 
@@ -316,6 +356,11 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         });
     }
 
+    @Override
+    public boolean onClick(@NonNull Overlay overlay) {
+            return false;
+        }
 }
+
 
 
