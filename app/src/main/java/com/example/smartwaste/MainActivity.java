@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
-import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -43,8 +42,8 @@ import com.naver.maps.map.util.FusedLocationSource;
 import java.util.ArrayList;
 
 public class MainActivity<NMapLocationManager> extends AppCompatActivity
-        implements MainFragment.OnNewButtonTappedListener, MainFragment.OnNewButtonTappedListener2, AddFragment.OnApproveButtonTappedListener, AddFragment.OnBackButtonTappedListener,
-        OnMapReadyCallback,LocationListener,Overlay.OnClickListener {
+        implements MainFragment.OnNewButtonTappedListener, AddFragment.OnApproveButtonTappedListener, AddFragment.OnBackButtonTappedListener,
+        OnMapReadyCallback,LocationListener {
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1000;
     private static final String TAG = "MainActivity";
     private MapView mapView;
@@ -81,10 +80,30 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         mapView.getMapAsync(this);
         locationSource = new FusedLocationSource(this, LOCATION_PERMISSION_REQUEST_CODE);
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        makeInfoWindow();
         readBin();
     }
 
-
+    public void makeInfoWindow(){
+        infoWindow = new InfoWindow();
+        infoWindow.setAdapter(new InfoWindow.DefaultViewAdapter(getApplicationContext()) {
+            @NonNull
+            @Override
+            protected View getContentView(@NonNull InfoWindow infoWindow) {
+                View view = View.inflate(MainActivity.this, R.layout.view_info_window, null);
+                return view;
+            }
+        });
+        infoWindow.setOnClickListener(new Overlay.OnClickListener()
+        {
+            @Override
+            public boolean onClick(@NonNull Overlay overlay)
+            {
+                onDeleteButtonTapped();
+                return false;
+            }
+        });
+    }
     public void onRequestPermissionsResult(int requestCode,
                                            @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (locationSource.onRequestPermissionsResult(
@@ -216,18 +235,11 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         naverMap.moveCamera(CameraUpdate.scrollTo(locationOverlay.getPosition())
             .animate(CameraAnimation.Easing, 200));
     }
-    @Override
-    public void onNewButtonTapped2() {
+
+    public void onDeleteButtonTapped() {
         infoWindow.close();
         LocationOverlay locationOverlay = naverMap.getLocationOverlay();
         locationOverlay.setVisible(false);
-        Button button =findViewById(R.id.button_delete);
-        if(button.getVisibility()==View.VISIBLE){
-            button.setVisibility(View.INVISIBLE);      }
-///we have to delete marker
-
-        naverMap.moveCamera(CameraUpdate.scrollTo(locationOverlay.getPosition())
-                .animate(CameraAnimation.Easing, 200));
     }
 
     @Override
@@ -308,28 +320,16 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
                     Log.w("FireBaseData", "lng" + lng);
                     marker.setMap(naverMap);
                     normalBinMarkerArray.add(marker);
-                    infoWindow = new InfoWindow();
-                    infoWindow.setAdapter(new InfoWindow.DefaultViewAdapter(getApplicationContext()) {
-                        @NonNull
-                        @Override
-                        protected View getContentView(@NonNull InfoWindow infoWindow) {
-                            Marker marker = infoWindow.getMarker();
-                            View view = View.inflate(MainActivity.this, R.layout.view_info_window, null);
-                            return view;
-                        }
-                    });
-                     Overlay.OnClickListener listener = overlay -> {
+                    Overlay.OnClickListener listener = overlay -> {
                          if (overlay instanceof Marker) {
-                              Button button =findViewById(R.id.button_delete);
-                              if(button.getVisibility()==View.VISIBLE){
-                                  button.setVisibility(View.INVISIBLE);
+                             if(marker.getInfoWindow() != null){
                                   infoWindow.close();
-                              }else{
-                                button.setVisibility(View.VISIBLE);
-                                infoWindow.open(marker); }
-                              return true;
+                             }else{
+                                infoWindow.open(marker);
+                             }
+                             return true;
                         }
-                        return false;
+                         return false;
                     };
                     marker.setOnClickListener(listener);
                 }
@@ -356,10 +356,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         });
     }
 
-    @Override
-    public boolean onClick(@NonNull Overlay overlay) {
-            return false;
-        }
+
 }
 
 
