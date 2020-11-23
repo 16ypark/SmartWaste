@@ -2,6 +2,7 @@ package com.example.smartwaste;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -39,6 +40,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
 public class MainActivity<NMapLocationManager> extends AppCompatActivity
         implements MainFragment.OnNewButtonTappedListener, AddFragment.OnApproveButtonTappedListener, AddFragment.OnBackButtonTappedListener,
         OnMapReadyCallback,LocationListener {
@@ -62,6 +69,12 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
     private Marker currentLocationMarker;
     private boolean isCreatingNewBin = false;
     private ArrayList<Marker> normalBinMarkerArray = new ArrayList<Marker>();
+    private ArrayList<Marker> publicBinMarkerArray = new ArrayList<Marker>();
+    private ArrayList<Marker> largeBinMarkerArray = new ArrayList<Marker>();
+
+    private Retrofit mRetrofit;
+    private RetrofitAPI mRetrofitAPI;
+    private Call<String> mCallGeocodeResult;
 
 
     @Override
@@ -80,6 +93,8 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         locationSource = new FusedLocationSource(this, LOCATION_PERMISSION_REQUEST_CODE);
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         readBin();
+        //setRetrofitInit();
+        //callGeocodeResult();
     }
 
     public void onRequestPermissionsResult(int requestCode,
@@ -244,7 +259,8 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         naverMap.moveCamera(CameraUpdate.scrollTo(locationOverlay.getPosition())
             .animate(CameraAnimation.Easing, 1000));
 
-        writeNewBin(new Bin(currentLocationMarker.getPosition(), BinType.NORMAL));
+        writeNewBin(new Bin(currentLocationMarker.getPosition(),
+                new HashSet<BinType>(Arrays.asList(BinType.NORMAL, BinType.RECYCLE))));
     }
 
     @Override
@@ -306,6 +322,53 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 // Get Post object and use the values to update the UI
+                for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
+                    if (!(postSnapshot.hasChild("lat") && postSnapshot.hasChild("lng"))) {
+                        continue;
+                    }
+                    if (publicBinMarkerArray.size() < 10) {
+                        double lat = postSnapshot.child("lat").getValue(Double.class);
+                        double lng = postSnapshot.child("lng").getValue(Double.class);
+
+                        Marker marker = new Marker();
+                        marker.setPosition(new LatLng(lat, lng));
+                        Log.w("FireBaseData", "lat" + lat);
+                        Log.w("FireBaseData", "lng" + lng);
+                        marker.setIconTintColor(Color.BLUE);
+                        marker.setMap(naverMap);
+                        publicBinMarkerArray.add(marker);
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                // Getting Post failed, log a message
+                Log.w("FireBaseData", "loadPost:onCancelled", databaseError.toException());
+            }
+        });
+
+        mDatabase.child("bins").child("large").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                // Get Post object and use the values to update the UI
+                for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
+                    if (!(postSnapshot.hasChild("lat") && postSnapshot.hasChild("lng"))) {
+                        continue;
+                    }
+                    if (largeBinMarkerArray.size() < 10) {
+                        double lat = postSnapshot.child("lat").getValue(Double.class);
+                        double lng = postSnapshot.child("lng").getValue(Double.class);
+
+                        Marker marker = new Marker();
+                        marker.setPosition(new LatLng(lat, lng));
+                        Log.w("FireBaseData", "lat" + lat);
+                        Log.w("FireBaseData", "lng" + lng);
+                        marker.setIconTintColor(Color.YELLOW);
+                        marker.setMap(naverMap);
+                        largeBinMarkerArray.add(marker);
+                    }
+                }
             }
 
             @Override
@@ -315,6 +378,34 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
             }
         });
     }
+
+    private void setRetrofitInit() {
+        mRetrofit = new Retrofit.Builder()
+                .baseUrl("https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode")
+                 .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        mRetrofitAPI = mRetrofit.create(RetrofitAPI.class);
+    }
+
+    private void callGeocodeResult() {
+        mCallGeocodeResult = mRetrofitAPI.getGeocodeResult();
+        mCallGeocodeResult.enqueue(mRetrofitCallback);
+    }
+
+    private Callback<String> mRetrofitCallback = new Callback<String>() {
+
+        @Override
+        public void onResponse(Call<String> call, Response<String> response) {
+            String result = response.body();
+            Log.d(TAG, result);
+        }
+
+        @Override
+        public void onFailure(Call<String> call, Throwable t) {
+            t.printStackTrace();
+        }
+    };
 
 }
 
