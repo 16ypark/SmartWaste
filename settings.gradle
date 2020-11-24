@@ -1,2 +1,4 @@
+include ':tedclustering'
+include ':tedclustering-naver'
 include ':app'
 rootProject.name = "Smart Waste"
