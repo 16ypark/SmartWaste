@@ -35,6 +35,10 @@ import com.naver.maps.map.util.FusedLocationSource;
 import android.widget.Toast;
 import com.google.firebase.database.DatabaseReference;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+
 public class MainActivity<NMapLocationManager> extends AppCompatActivity
         implements MainFragment.OnNewButtonTappedListener, AddFragment.OnApproveButtonTappedListener, AddFragment.OnBackButtonTappedListener,
         OnMapReadyCallback,LocationListener {
@@ -57,6 +61,8 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
     private DatabaseReference mDatabase;
     private Marker currentLocationMarker;
     private boolean isCreatingNewBin = false;
+    private ArrayList<Marker> normalBinMarkerArray = new ArrayList<Marker>();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -253,7 +259,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
     }
 
     private void writeNewBin(Bin bin) {
-        mDatabase.child("bins").push().setValue(bin)
+        mDatabase.child("bins").child("normal").push().setValue(bin)
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
@@ -271,7 +277,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
     }
 
     private void readBin() {
-        mDatabase.child("bins").addValueEventListener(new ValueEventListener() {
+        mDatabase.child("bins").child("normal").addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 // Get Post object and use the values to update the UI
@@ -285,6 +291,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
                     Log.w("FireBaseData", "lat" + lat);
                     Log.w("FireBaseData", "lng" + lng);
                     marker.setMap(naverMap);
+                    normalBinMarkerArray.add(marker);
                 }
             }
 
@@ -295,6 +302,18 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
             }
         });
 
+        mDatabase.child("bins").child("public").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                // Get Post object and use the values to update the UI
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                // Getting Post failed, log a message
+                Log.w("FireBaseData", "loadPost:onCancelled", databaseError.toException());
+            }
+        });
     }
 
 }

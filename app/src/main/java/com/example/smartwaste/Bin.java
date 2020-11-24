@@ -34,10 +34,6 @@ public class Bin {
         this.lng = lng;
     }
 
-    public String getBinType() {
-        return binType.name();
-    }
-
     public void setBinType(BinType binType) {
         this.binType = binType;
     }
@@ -50,9 +46,10 @@ public class Bin {
                 ", binType='" + binType.name() + '\'' +
                 '}';
     }
+
 }
 
 enum BinType {
 
-    NORMAL, GLASS, CAN, PLASTIC
+    NORMAL, RECYCLE
 }
