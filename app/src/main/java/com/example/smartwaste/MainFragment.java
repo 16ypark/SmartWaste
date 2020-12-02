@@ -2,15 +2,12 @@ package com.example.smartwaste;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
-import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
-import androidx.navigation.fragment.NavHostFragment;
 
 public class MainFragment extends Fragment {
 
@@ -31,7 +28,6 @@ public class MainFragment extends Fragment {
                 onNewButtonTappedListener.onNewButtonTapped();
             }
         });
-
         // Inflate the layout for this fragment
         return view;
     }
@@ -51,6 +47,7 @@ public class MainFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
         onNewButtonTappedListener = null;
+
     }
 
     // Container Activity must implement this interface
