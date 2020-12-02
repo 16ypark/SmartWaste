@@ -40,6 +40,17 @@ import com.naver.maps.map.overlay.Overlay;
 import com.naver.maps.map.util.FusedLocationSource;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.concurrent.atomic.AtomicReference;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+import ted.gun0912.clustering.clustering.TedClusterItem;
+import ted.gun0912.clustering.naver.TedNaverClustering;
 
 public class MainActivity<NMapLocationManager> extends AppCompatActivity
         implements MainFragment.OnNewButtonTappedListener, AddFragment.OnApproveButtonTappedListener, AddFragment.OnBackButtonTappedListener,
@@ -62,7 +73,15 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
     private DatabaseReference mDatabase;
     private Marker currentLocationMarker;
     private boolean isCreatingNewBin = false;
-    private ArrayList<Marker> normalBinMarkerArray = new ArrayList<Marker>();
+          
+    private TedNaverClustering<TedClusterItem> normalCluster;
+    private TedNaverClustering<TedClusterItem> publicCluster;
+    private TedNaverClustering<TedClusterItem> largeCluster;
+
+    private Retrofit mRetrofit;
+    private RetrofitAPI mRetrofitAPI;
+    private Call<String> mCallGeocodeResult;
+
     private InfoWindow infoWindow;
 
     @Override
@@ -80,8 +99,9 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         mapView.getMapAsync(this);
         locationSource = new FusedLocationSource(this, LOCATION_PERMISSION_REQUEST_CODE);
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        //setRetrofitInit();
+        //callGeocodeResult();
         makeInfoWindow();
-        readBin();
     }
 
     public void makeInfoWindow(){
@@ -233,7 +253,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         infoWindow.close();
 
         naverMap.moveCamera(CameraUpdate.scrollTo(locationOverlay.getPosition())
-            .animate(CameraAnimation.Easing, 200));
+            .animate(CameraAnimation.Easing, 3000));
     }
 
     public void onDeleteButtonTapped() {
@@ -244,20 +264,72 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
 
     @Override
     public void onMapReady(@NonNull NaverMap naverMap) {
-            Log.d( TAG, "onMapReady");
-            this.naverMap = naverMap;
-            naverMap.setLocationSource(locationSource);
-            UiSettings uiSettings = naverMap.getUiSettings();
-            uiSettings.setLocationButtonEnabled(true); // 기본값 : false
-            uiSettings.setLogoGravity(Gravity.RIGHT|Gravity.BOTTOM);
-            ActivityCompat.requestPermissions(this, PERMISSIONS, (Integer) LOCATION_PERMISSION_REQUEST_CODE);
-            naverMap.addOnCameraChangeListener((reason, animated) -> {
-                Log.i("NaverMap", "카메라 변경 - reason: " + reason + ", animated: " + animated);
-                if (isCreatingNewBin) {
-                    currentLocationMarker.setPosition(new LatLng(naverMap.getCameraPosition().target.latitude, naverMap.getCameraPosition().target.longitude));
-                }
-            });
+        Log.d( TAG, "onMapReady");
+        this.naverMap = naverMap;
+        naverMap.setLocationSource(locationSource);
+        UiSettings uiSettings = naverMap.getUiSettings();
+        uiSettings.setLocationButtonEnabled(true); // 기본값 : false
+        uiSettings.setLogoGravity(Gravity.RIGHT|Gravity.BOTTOM);
+        ActivityCompat.requestPermissions(this, PERMISSIONS, (Integer) LOCATION_PERMISSION_REQUEST_CODE);
+        naverMap.addOnCameraChangeListener((reason, animated) -> {
+            Log.i("NaverMap", "카메라 변경 - reason: " + reason + ", animated: " + animated);
+            if (isCreatingNewBin) {
+                currentLocationMarker.setPosition(new LatLng(naverMap.getCameraPosition().target.latitude, naverMap.getCameraPosition().target.longitude));
+            }
+        });
 
+        Overlay.OnClickListener listener = overlay -> {
+            if (overlay instanceof Marker) {
+                if (((Marker) overlay).getInfoWindow() != null){
+                    infoWindow.close();
+                }else{
+                    infoWindow.open((Marker) overlay);
+                }
+                return true;
+            }
+            return false;
+        };
+
+        readBin(new ReadBinCallback() {
+            @Override
+            public void onReadNormalBin(ArrayList<JavaItem> normalBinArray) {
+                if (normalCluster == null) {
+                    normalCluster = TedNaverClustering.with(MainActivity.this, naverMap)
+                            .items(normalBinArray)
+                            .markerClickListener(javaItem -> {
+                                infoWindow.setPosition(new LatLng(javaItem.getTedLatLng().getLatitude(),
+                                        javaItem.getTedLatLng().getLongitude()));
+                                infoWindow.open(naverMap);
+                                return null;
+                            })
+                            .make();
+                } else {
+                    normalCluster.addItems(normalBinArray);
+                }
+            }
+
+            @Override
+            public void onReadPublicBin(ArrayList<JavaItem> publicBinArray) {
+                if (publicCluster == null) {
+                    publicCluster = TedNaverClustering.with(MainActivity.this, naverMap)
+                            .items(publicBinArray)
+                            .make();
+                } else {
+                    publicCluster.addItems(publicBinArray);
+                }
+            }
+
+            @Override
+            public void onReadLargeBin(ArrayList<JavaItem> largeBinArray) {
+                if (largeCluster == null) {
+                    largeCluster = TedNaverClustering.with(MainActivity.this, naverMap)
+                            .items(largeBinArray)
+                            .make();
+                } else {
+                    publicCluster.addItems(largeBinArray);
+                }
+            }
+        });
     }
 
     @Override
@@ -271,9 +343,10 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         currentLocationMarker.setMap(null);
 
         naverMap.moveCamera(CameraUpdate.scrollTo(locationOverlay.getPosition())
-            .animate(CameraAnimation.Easing, 1000));
+            .animate(CameraAnimation.Easing, 3000));
 
-        writeNewBin(new Bin(currentLocationMarker.getPosition(), BinType.NORMAL));
+        writeNewBin(new Bin(currentLocationMarker.getPosition(),
+                new HashSet<BinType>(Arrays.asList(BinType.NORMAL, BinType.RECYCLE))));
     }
 
     @Override
@@ -305,34 +378,21 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
                 });
     }
 
-    private void readBin() {
+    private void readBin(ReadBinCallback callback) {
         mDatabase.child("bins").child("normal").addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 // Get Post object and use the values to update the UI
+                ArrayList<JavaItem> normalBinArray = new ArrayList<JavaItem>();
                 for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
                     double lat = postSnapshot.child("lat").getValue(Double.class);
                     double lng = postSnapshot.child("lng").getValue(Double.class);
                     String binType = postSnapshot.child("binType").getValue(String.class);
-                    Marker marker = new Marker();
-                    marker.setPosition(new LatLng(lat, lng));
-                    Log.w("FireBaseData", "lat" + lat);
-                    Log.w("FireBaseData", "lng" + lng);
-                    marker.setMap(naverMap);
-                    normalBinMarkerArray.add(marker);
-                    Overlay.OnClickListener listener = overlay -> {
-                         if (overlay instanceof Marker) {
-                             if(marker.getInfoWindow() != null){
-                                  infoWindow.close();
-                             }else{
-                                infoWindow.open(marker);
-                             }
-                             return true;
-                        }
-                         return false;
-                    };
-                    marker.setOnClickListener(listener);
+
+                    LatLng latLng = new LatLng(lat, lng);
+                    normalBinArray.add(new JavaItem(latLng));
                 }
+                callback.onReadNormalBin(normalBinArray);
             }
 
             @Override
@@ -346,6 +406,43 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 // Get Post object and use the values to update the UI
+                ArrayList<JavaItem> publicBinArray = new ArrayList<JavaItem>();
+                for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
+                    if (!(postSnapshot.hasChild("lat") && postSnapshot.hasChild("lng"))) {
+                        continue;
+                    }
+                    double lat = postSnapshot.child("lat").getValue(Double.class);
+                    double lng = postSnapshot.child("lng").getValue(Double.class);
+
+                    LatLng latLngPublic = new LatLng(lat, lng);
+                    publicBinArray.add(new JavaItem(latLngPublic));
+                }
+                callback.onReadPublicBin(publicBinArray);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                // Getting Post failed, log a message
+                Log.w("FireBaseData", "loadPost:onCancelled", databaseError.toException());
+            }
+        });
+
+        mDatabase.child("bins").child("large").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                // Get Post object and use the values to update the UI
+                ArrayList<JavaItem> largeBinArray = new ArrayList<JavaItem>();
+                for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
+                    if (!(postSnapshot.hasChild("lat") && postSnapshot.hasChild("lng"))) {
+                        continue;
+                    }
+                    double lat = postSnapshot.child("lat").getValue(Double.class);
+                    double lng = postSnapshot.child("lng").getValue(Double.class);
+
+                    LatLng latLngLarge = new LatLng(lat, lng);
+                    largeBinArray.add(new JavaItem(latLngLarge));
+                }
+                callback.onReadLargeBin(largeBinArray);
             }
 
             @Override
@@ -356,6 +453,33 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         });
     }
 
+    private void setRetrofitInit() {
+        mRetrofit = new Retrofit.Builder()
+                .baseUrl("https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode")
+                 .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        mRetrofitAPI = mRetrofit.create(RetrofitAPI.class);
+    }
+
+    private void callGeocodeResult() {
+        mCallGeocodeResult = mRetrofitAPI.getGeocodeResult();
+        mCallGeocodeResult.enqueue(mRetrofitCallback);
+    }
+
+    private Callback<String> mRetrofitCallback = new Callback<String>() {
+
+        @Override
+        public void onResponse(Call<String> call, Response<String> response) {
+            String result = response.body();
+            Log.d(TAG, result);
+        }
+
+        @Override
+        public void onFailure(Call<String> call, Throwable t) {
+            t.printStackTrace();
+        }
+    };
 
 }
 
