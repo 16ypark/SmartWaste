@@ -40,6 +40,9 @@ import com.naver.maps.map.overlay.Overlay;
 import com.naver.maps.map.util.FusedLocationSource;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.concurrent.atomic.AtomicReference;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -275,12 +278,30 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
             }
         });
 
+        Overlay.OnClickListener listener = overlay -> {
+            if (overlay instanceof Marker) {
+                if (((Marker) overlay).getInfoWindow() != null){
+                    infoWindow.close();
+                }else{
+                    infoWindow.open((Marker) overlay);
+                }
+                return true;
+            }
+            return false;
+        };
+
         readBin(new ReadBinCallback() {
             @Override
             public void onReadNormalBin(ArrayList<JavaItem> normalBinArray) {
                 if (normalCluster == null) {
                     normalCluster = TedNaverClustering.with(MainActivity.this, naverMap)
                             .items(normalBinArray)
+                            .markerClickListener(javaItem -> {
+                                infoWindow.setPosition(new LatLng(javaItem.getTedLatLng().getLatitude(),
+                                        javaItem.getTedLatLng().getLongitude()));
+                                infoWindow.open(naverMap);
+                                return null;
+                            })
                             .make();
                 } else {
                     normalCluster.addItems(normalBinArray);
