@@ -395,14 +395,14 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
                     @Override
                     public void onSuccess(Void aVoid) {
                         // Write was successful!
-                        Toast.makeText(MainActivity.this, "저장을 완료했습니다.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, R.string.save_complete, Toast.LENGTH_SHORT).show();
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
                         // Write failed
-                        Toast.makeText(MainActivity.this, "저장을 실패했습니다.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, R.string.save_fail, Toast.LENGTH_SHORT).show();
                     }
                 });
     }
