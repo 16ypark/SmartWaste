@@ -9,7 +9,7 @@
 
 <string name="hello_first_fragment">Hello first fragment</string>
 <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
-<string name="create_bin">쓰레기통 추가하기</string>
-<string name="move_camera">지도를 드래그해 쓰레기통 위치를 조정하세요.</string>
-<string name="approve_bin">이 위치가 맞습니다.</string>
+<string name="create_bin">Add a bin</string>
+<string name="move_camera">Drag the map to adjust the bin location.</string>
+<string name="approve_bin">This locations is correct.</string>
 </resources>
