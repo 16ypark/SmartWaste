@@ -6,7 +6,7 @@ public class GeocodeResultVO {
     private String status;
     private String errorMessage;
     private MetaVO meta;
-    private ArrayList<AddressVO> address;
+    private AddressVO[] addresses;
 
     public String getStatus() {
         return status;
@@ -20,8 +20,8 @@ public class GeocodeResultVO {
         return meta;
     }
 
-    public ArrayList<AddressVO> getAddress() {
-        return address;
+    public AddressVO[] getAddress() {
+        return addresses;
     }
 
 
