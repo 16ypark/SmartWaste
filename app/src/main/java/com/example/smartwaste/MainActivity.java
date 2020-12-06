@@ -2,6 +2,8 @@ package com.example.smartwaste;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -39,6 +41,7 @@ import com.naver.maps.map.overlay.InfoWindow;
 import com.naver.maps.map.overlay.LocationOverlay;
 import com.naver.maps.map.overlay.Marker;
 import com.naver.maps.map.overlay.Overlay;
+import com.naver.maps.map.overlay.OverlayImage;
 import com.naver.maps.map.util.FusedLocationSource;
 
 import java.util.ArrayList;
@@ -267,7 +270,9 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         locationOverlay.setVisible(false);
         currentLocationMarker = new Marker();
         currentLocationMarker.setPosition(locationOverlay.getPosition());
+        currentLocationMarker.setIcon(OverlayImage.fromResource(R.drawable.bin));
         currentLocationMarker.setMap(naverMap);
+
         isCreatingNewBin = true;
         infoWindow.close();
 
@@ -291,7 +296,9 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         naverMap.addOnCameraChangeListener((reason, animated) -> {
             Log.i("NaverMap", "카메라 변경 - reason: " + reason + ", animated: " + animated);
             if (isCreatingNewBin) {
+                currentLocationMarker.setIcon(OverlayImage.fromResource(R.drawable.bin));
                 currentLocationMarker.setPosition(new LatLng(naverMap.getCameraPosition().target.latitude, naverMap.getCameraPosition().target.longitude));
+
             }
         });
 
@@ -300,16 +307,25 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
             public void onReadNormalBin(ArrayList<JavaItem> normalBinArray) {
                 if (normalCluster == null) {
                     normalCluster = TedNaverClustering.with(MainActivity.this, naverMap)
+                            .customMarker(javaItem -> {
+                                Marker marker = new Marker(new LatLng(javaItem.getTedLatLng().getLatitude(),
+                                        javaItem.getTedLatLng().getLongitude()));
+                                marker.setIcon((OverlayImage.fromResource(R.drawable.bin)));
+                                return marker;
+                            })
                             .items(normalBinArray)
                             .markerClickListener(javaItem -> {
                                 infoWindow.setPosition(new LatLng(javaItem.getTedLatLng().getLatitude(),
                                         javaItem.getTedLatLng().getLongitude()));
                                 infoWindow.open(naverMap);
+
                                 return null;
                             })
+
                             .make();
                 } else {
                     normalCluster.addItems(normalBinArray);
+
                 }
             }
 
@@ -317,8 +333,15 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
             public void onReadPublicBin(ArrayList<JavaItem> publicBinArray) {
                 if (publicCluster == null) {
                     publicCluster = TedNaverClustering.with(MainActivity.this, naverMap)
+                            .customMarker(javaItem -> {
+                                Marker marker = new Marker(new LatLng(javaItem.getTedLatLng().getLatitude(),
+                                        javaItem.getTedLatLng().getLongitude()));
+                                marker.setIcon((OverlayImage.fromResource(R.drawable.bin)));
+                                return marker;
+                            })
                             .items(publicBinArray)
                             .make();
+
                 } else {
                     publicCluster.addItems(publicBinArray);
                 }
@@ -328,6 +351,12 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
             public void onReadLargeBin(ArrayList<JavaItem> largeBinArray) {
                 if (largeCluster == null) {
                     largeCluster = TedNaverClustering.with(MainActivity.this, naverMap)
+                            .customMarker(javaItem -> {
+                                Marker marker = new Marker(new LatLng(javaItem.getTedLatLng().getLatitude(),
+                                        javaItem.getTedLatLng().getLongitude()));
+                                marker.setIcon((OverlayImage.fromResource(R.drawable.big_bin)));
+                                return marker;
+                            })
                             .items(largeBinArray)
                             .make();
                 } else {
@@ -341,15 +370,12 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
     public void onApproveButtonTapped() {
         transaction = fragmentManager.beginTransaction();
         transaction.replace(R.id.frameLayout, fragmentMain).commitAllowingStateLoss();
-
         LocationOverlay locationOverlay = naverMap.getLocationOverlay();
         locationOverlay.setVisible(true);
         isCreatingNewBin = false;
         currentLocationMarker.setMap(null);
-
         naverMap.moveCamera(CameraUpdate.scrollTo(locationOverlay.getPosition())
             .animate(CameraAnimation.Easing, 3000));
-
         writeNewBin(new Bin(currentLocationMarker.getPosition(),
                 new HashSet<BinType>(Arrays.asList(BinType.NORMAL, BinType.RECYCLE))));
     }
@@ -363,6 +389,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         locationOverlay.setVisible(true);
         isCreatingNewBin = false;
         currentLocationMarker.setMap(null);
+
     }
 
     private void writeNewBin(Bin bin) {
@@ -371,14 +398,14 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
                     @Override
                     public void onSuccess(Void aVoid) {
                         // Write was successful!
-                        Toast.makeText(MainActivity.this, "저장을 완료했습니다.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, R.string.save_complete, Toast.LENGTH_SHORT).show();
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
                         // Write failed
-                        Toast.makeText(MainActivity.this, "저장을 실패했습니다.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, R.string.save_fail, Toast.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -393,9 +420,9 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
                     double lat = postSnapshot.child("lat").getValue(Double.class);
                     double lng = postSnapshot.child("lng").getValue(Double.class);
                     String binType = postSnapshot.child("binType").getValue(String.class);
-
                     LatLng latLng = new LatLng(lat, lng);
                     normalBinArray.add(new JavaItem(latLng));
+
                 }
                 callback.onReadNormalBin(normalBinArray);
             }
@@ -495,6 +522,8 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
             }
         });
     }
+
+
 
 }
 
