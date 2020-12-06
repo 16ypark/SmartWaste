@@ -304,7 +304,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
             public void onReadNormalBin(ArrayList<JavaItem> normalBinArray) {
                 if (normalCluster == null) {
                     normalCluster = TedNaverClustering.with(MainActivity.this, naverMap)
-                            .customMarker(javaItem ->{
+                            .customMarker(javaItem -> {
                                 Marker marker = new Marker(new LatLng(javaItem.getTedLatLng().getLatitude(),
                                         javaItem.getTedLatLng().getLongitude()));
                                 marker.setIcon((OverlayImage.fromResource(R.drawable.bin)));
@@ -330,7 +330,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
             public void onReadPublicBin(ArrayList<JavaItem> publicBinArray) {
                 if (publicCluster == null) {
                     publicCluster = TedNaverClustering.with(MainActivity.this, naverMap)
-                            .customMarker(javaItem ->{
+                            .customMarker(javaItem -> {
                                 Marker marker = new Marker(new LatLng(javaItem.getTedLatLng().getLatitude(),
                                         javaItem.getTedLatLng().getLongitude()));
                                 marker.setIcon((OverlayImage.fromResource(R.drawable.bin)));
@@ -348,7 +348,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
             public void onReadLargeBin(ArrayList<JavaItem> largeBinArray) {
                 if (largeCluster == null) {
                     largeCluster = TedNaverClustering.with(MainActivity.this, naverMap)
-                            .customMarker(javaItem ->{
+                            .customMarker(javaItem -> {
                                 Marker marker = new Marker(new LatLng(javaItem.getTedLatLng().getLatitude(),
                                         javaItem.getTedLatLng().getLongitude()));
                                 marker.setIcon((OverlayImage.fromResource(R.drawable.big_bin)));
