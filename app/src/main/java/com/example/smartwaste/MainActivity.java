@@ -487,7 +487,6 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
                 if (response.isSuccessful()) {
 
                     GeocodeResultVO result = response.body();
-                    Toast.makeText(MainActivity.this, result.getAddress().toString(), Toast.LENGTH_SHORT).show();
                     GeocodeResultVO.AddressVO[] addresses = result.getAddress();
                     if (addresses != null && addresses.length > 0) {
                         GeocodeResultVO.AddressVO address = addresses[0];
