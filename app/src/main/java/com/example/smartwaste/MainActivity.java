@@ -12,6 +12,7 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Toast;
+import android.widget.SearchView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -29,6 +30,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.naver.maps.geometry.LatLng;
 import com.naver.maps.map.CameraAnimation;
+import com.naver.maps.map.CameraPosition;
 import com.naver.maps.map.CameraUpdate;
 import com.naver.maps.map.LocationTrackingMode;
 import com.naver.maps.map.MapView;
@@ -45,7 +47,6 @@ import com.naver.maps.map.util.FusedLocationSource;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.concurrent.atomic.AtomicReference;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -83,9 +84,10 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
 
     private Retrofit mRetrofit;
     private RetrofitAPI mRetrofitAPI;
-    private Call<String> mCallGeocodeResult;
+    private Call<GeocodeResultVO> mCallGeocodeResult;
 
     private InfoWindow infoWindow;
+    private SearchView mSearchView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,14 +104,29 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         mapView.getMapAsync(this);
         locationSource = new FusedLocationSource(this, LOCATION_PERMISSION_REQUEST_CODE);
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-
-        //setRetrofitInit();
-        //callGeocodeResult();
+        setRetrofitInit();
         makeInfoWindow();
-
+        prepareSearchView();
     }
 
-    public void makeInfoWindow(){
+    private void prepareSearchView() {
+        mSearchView = findViewById(R.id.searchView);
+
+        mSearchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                callGeocodeResult(query);
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                return false;
+            }
+        });
+    }
+
+    private void makeInfoWindow() {
         infoWindow = new InfoWindow();
         infoWindow.setAdapter(new InfoWindow.DefaultViewAdapter(getApplicationContext()) {
             @NonNull
@@ -265,8 +282,6 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
 
     public void onDeleteButtonTapped() {
         infoWindow.close();
-        LocationOverlay locationOverlay = naverMap.getLocationOverlay();
-        locationOverlay.setVisible(false);
     }
 
     @Override
@@ -286,18 +301,6 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
 
             }
         });
-
-        Overlay.OnClickListener listener = overlay -> {
-            if (overlay instanceof Marker) {
-                if (((Marker) overlay).getInfoWindow() != null){
-                    infoWindow.close();
-                }else{
-                    infoWindow.open((Marker) overlay);
-                }
-                return true;
-            }
-            return false;
-        };
 
         readBin(new ReadBinCallback() {
             @Override
@@ -484,31 +487,41 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
 
     private void setRetrofitInit() {
         mRetrofit = new Retrofit.Builder()
-                .baseUrl("https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode")
+                .baseUrl("https://naveropenapi.apigw.ntruss.com/")
                  .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
         mRetrofitAPI = mRetrofit.create(RetrofitAPI.class);
     }
 
-    private void callGeocodeResult() {
-        mCallGeocodeResult = mRetrofitAPI.getGeocodeResult();
-        mCallGeocodeResult.enqueue(mRetrofitCallback);
+    private void callGeocodeResult(String query) {
+        mCallGeocodeResult = mRetrofitAPI.getGeocodeResult(query);
+        mCallGeocodeResult.enqueue(new Callback<GeocodeResultVO>() {
+            @Override
+            public void onResponse(Call<GeocodeResultVO> call, Response<GeocodeResultVO> response) {
+                if (response.isSuccessful()) {
+
+                    GeocodeResultVO result = response.body();
+                    GeocodeResultVO.AddressVO[] addresses = result.getAddress();
+                    if (addresses != null && addresses.length > 0) {
+                        GeocodeResultVO.AddressVO address = addresses[0];
+                        LatLng moveLatLng = new LatLng(Double.parseDouble(address.getY()), Double.parseDouble(address.getX()));
+                        naverMap.moveCamera(CameraUpdate.toCameraPosition(new CameraPosition(moveLatLng, 16)));
+                    } else {
+                        Toast.makeText(MainActivity.this, "주소가 존재하지 않습니다.", Toast.LENGTH_SHORT).show();
+                    }
+
+                } else {
+                    Log.d("onResponse error", response.errorBody().toString());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<GeocodeResultVO> call, Throwable t) {
+                t.printStackTrace();
+            }
+        });
     }
-
-    private Callback<String> mRetrofitCallback = new Callback<String>() {
-
-        @Override
-        public void onResponse(Call<String> call, Response<String> response) {
-            String result = response.body();
-            Log.d(TAG, result);
-        }
-
-        @Override
-        public void onFailure(Call<String> call, Throwable t) {
-            t.printStackTrace();
-        }
-    };
 
 
 
