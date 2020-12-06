@@ -484,8 +484,6 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         mCallGeocodeResult.enqueue(new Callback<GeocodeResultVO>() {
             @Override
             public void onResponse(Call<GeocodeResultVO> call, Response<GeocodeResultVO> response) {
-                //String result = response.body();
-                //Log.d(TAG, result);
                 if (response.isSuccessful()) {
 
                     GeocodeResultVO result = response.body();
@@ -506,15 +504,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
 
             @Override
             public void onFailure(Call<GeocodeResultVO> call, Throwable t) {
-                Toast.makeText(MainActivity.this, "검색을 실패했습니다.", Toast.LENGTH_SHORT).show();
-
-                StackTraceElement[] stacks = t.getStackTrace();
-                for (StackTraceElement element : stacks) {
-                    Toast.makeText(MainActivity.this, element.toString(), Toast.LENGTH_SHORT).show();
-                    //System.out.println(element);
-                }
-
-                //t.printStackTrace();
+                t.printStackTrace();
             }
         });
     }
