@@ -295,18 +295,6 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
             }
         });
 
-        Overlay.OnClickListener listener = overlay -> {
-            if (overlay instanceof Marker) {
-                if (((Marker) overlay).getInfoWindow() != null){
-                    infoWindow.close();
-                }else{
-                    infoWindow.open((Marker) overlay);
-                }
-                return true;
-            }
-            return false;
-        };
-
         readBin(new ReadBinCallback() {
             @Override
             public void onReadNormalBin(ArrayList<JavaItem> normalBinArray) {
