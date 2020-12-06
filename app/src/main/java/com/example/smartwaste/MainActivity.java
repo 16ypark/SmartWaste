@@ -8,8 +8,10 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
+import android.widget.SearchView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -83,6 +85,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
     private Call<String> mCallGeocodeResult;
 
     private InfoWindow infoWindow;
+    private SearchView mSearchView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,9 +105,27 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         //setRetrofitInit();
         //callGeocodeResult();
         makeInfoWindow();
+        prepareSearchView();
     }
 
-    public void makeInfoWindow(){
+    private void prepareSearchView() {
+        mSearchView = findViewById(R.id.searchView);
+
+        mSearchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                Toast.makeText(MainActivity.this, "주소를 검색합니.", Toast.LENGTH_SHORT).show();
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                return false;
+            }
+        });
+    }
+
+    private void makeInfoWindow() {
         infoWindow = new InfoWindow();
         infoWindow.setAdapter(new InfoWindow.DefaultViewAdapter(getApplicationContext()) {
             @NonNull
