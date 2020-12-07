@@ -46,6 +46,7 @@ import com.naver.maps.map.util.FusedLocationSource;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 
 import retrofit2.Call;
@@ -77,6 +78,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
     private DatabaseReference mDatabase;
     private Marker currentLocationMarker;
     private boolean isCreatingNewBin = false;
+    private HashMap<LatLng, JavaItem> normalBinsAggregated = new HashMap<>();
           
     private TedNaverClustering<TedClusterItem> normalCluster;
     private TedNaverClustering<TedClusterItem> publicCluster;
@@ -281,6 +283,10 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
     }
 
     public void onDeleteButtonTapped() {
+        LatLng latLng = infoWindow.getPosition();
+        JavaItem javaItem = normalBinsAggregated.get(latLng);
+        normalCluster.removeItem(javaItem);
+        mDatabase.child("bins").child("normal").child(javaItem.getKey()).removeValue();
         infoWindow.close();
     }
 
@@ -304,16 +310,21 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
 
         readBin(new ReadBinCallback() {
             @Override
-            public void onReadNormalBin(ArrayList<JavaItem> normalBinArray) {
+            public void onReadNormalBin(HashMap<LatLng, JavaItem> normalBins) {
                 if (normalCluster == null) {
                     normalCluster = TedNaverClustering.with(MainActivity.this, naverMap)
                             .customMarker(javaItem -> {
-                                Marker marker = new Marker(new LatLng(javaItem.getTedLatLng().getLatitude(),
-                                        javaItem.getTedLatLng().getLongitude()));
+                                LatLng latLng = new LatLng(javaItem.getTedLatLng().getLatitude(),
+                                        javaItem.getTedLatLng().getLongitude());
+                                Marker marker = new Marker(latLng);
                                 marker.setIcon((OverlayImage.fromResource(R.drawable.bin)));
+                                String key = normalBins.get(latLng).getKey();
+                                marker.setTag(key);
+                                //normalBins.toArray(new JavaItem[normalBins.size()]).
+                                //marker.setTag(javaItem.getKey())
                                 return marker;
                             })
-                            .items(normalBinArray)
+                            .items(new ArrayList<JavaItem>(normalBins.values()))
                             .markerClickListener(javaItem -> {
                                 infoWindow.setPosition(new LatLng(javaItem.getTedLatLng().getLatitude(),
                                         javaItem.getTedLatLng().getLongitude()));
@@ -321,10 +332,9 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
 
                                 return null;
                             })
-
                             .make();
                 } else {
-                    normalCluster.addItems(normalBinArray);
+                    normalCluster.addItems(normalBins.values());
 
                 }
             }
@@ -415,16 +425,18 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 // Get Post object and use the values to update the UI
-                ArrayList<JavaItem> normalBinArray = new ArrayList<JavaItem>();
+                HashMap<LatLng, JavaItem> normalBins = new HashMap<>();
                 for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
                     double lat = postSnapshot.child("lat").getValue(Double.class);
                     double lng = postSnapshot.child("lng").getValue(Double.class);
                     String binType = postSnapshot.child("binType").getValue(String.class);
                     LatLng latLng = new LatLng(lat, lng);
-                    normalBinArray.add(new JavaItem(latLng));
-
+                    normalBins.put(latLng, new JavaItem(latLng, postSnapshot.getKey()));
                 }
-                callback.onReadNormalBin(normalBinArray);
+                callback.onReadNormalBin(normalBins);
+                HashMap<LatLng, JavaItem> temp = new HashMap(normalBins);
+                temp.keySet().removeAll(normalBinsAggregated.keySet());
+                normalBinsAggregated.putAll(temp);
             }
 
             @Override
@@ -447,7 +459,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
                     double lng = postSnapshot.child("lng").getValue(Double.class);
 
                     LatLng latLngPublic = new LatLng(lat, lng);
-                    publicBinArray.add(new JavaItem(latLngPublic));
+                    publicBinArray.add(new JavaItem(latLngPublic, postSnapshot.getKey()));
                 }
                 callback.onReadPublicBin(publicBinArray);
             }
@@ -472,7 +484,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
                     double lng = postSnapshot.child("lng").getValue(Double.class);
 
                     LatLng latLngLarge = new LatLng(lat, lng);
-                    largeBinArray.add(new JavaItem(latLngLarge));
+                    largeBinArray.add(new JavaItem(latLngLarge, postSnapshot.getKey()));
                 }
                 callback.onReadLargeBin(largeBinArray);
             }
