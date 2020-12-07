@@ -9,14 +9,18 @@ import ted.gun0912.clustering.geometry.TedLatLng;
 public class JavaItem implements TedClusterItem {
 
     private LatLng latLng;
+    private String key;
 
-    public JavaItem(LatLng latLng) {
+    public JavaItem(LatLng latLng, String key) {
         this.latLng = latLng;
+        this.key = key;
     }
 
     public LatLng getLatLng() {
         return latLng;
     }
+
+    public String getKey() { return key; }
 
     @NotNull
     @Override

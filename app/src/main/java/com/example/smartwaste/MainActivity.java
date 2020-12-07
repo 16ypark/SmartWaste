@@ -15,6 +15,7 @@ import android.widget.Toast;
 import android.widget.SearchView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.PermissionChecker;
@@ -23,10 +24,12 @@ import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 import com.naver.maps.geometry.LatLng;
 import com.naver.maps.map.CameraAnimation;
@@ -46,6 +49,7 @@ import com.naver.maps.map.util.FusedLocationSource;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 
 import retrofit2.Call;
@@ -77,6 +81,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
     private DatabaseReference mDatabase;
     private Marker currentLocationMarker;
     private boolean isCreatingNewBin = false;
+    private HashMap<LatLng, JavaItem> normalBinsAggregated = new HashMap<>();
           
     private TedNaverClustering<TedClusterItem> normalCluster;
     private TedNaverClustering<TedClusterItem> publicCluster;
@@ -281,7 +286,13 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
     }
 
     public void onDeleteButtonTapped() {
+        LatLng latLng = infoWindow.getPosition();
+        JavaItem javaItem = normalBinsAggregated.get(latLng);
+        mDatabase.child("bins").child("normal").child(javaItem.getKey()).removeValue();
+        normalCluster.removeItem(javaItem);
+        normalBinsAggregated.remove(latLng);
         infoWindow.close();
+        Toast.makeText(MainActivity.this, "신고가 접수됐습니다.", Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -304,64 +315,51 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
 
         readBin(new ReadBinCallback() {
             @Override
-            public void onReadNormalBin(ArrayList<JavaItem> normalBinArray) {
-                if (normalCluster == null) {
-                    normalCluster = TedNaverClustering.with(MainActivity.this, naverMap)
-                            .customMarker(javaItem -> {
-                                Marker marker = new Marker(new LatLng(javaItem.getTedLatLng().getLatitude(),
-                                        javaItem.getTedLatLng().getLongitude()));
-                                marker.setIcon((OverlayImage.fromResource(R.drawable.bin)));
-                                return marker;
-                            })
-                            .items(normalBinArray)
-                            .markerClickListener(javaItem -> {
-                                infoWindow.setPosition(new LatLng(javaItem.getTedLatLng().getLatitude(),
-                                        javaItem.getTedLatLng().getLongitude()));
-                                infoWindow.open(naverMap);
+            public void onReadNormalBin(HashMap<LatLng, JavaItem> normalBins) {
+                normalCluster = TedNaverClustering.with(MainActivity.this, naverMap)
+                        .customMarker(javaItem -> {
+                            LatLng latLng = new LatLng(javaItem.getTedLatLng().getLatitude(),
+                                    javaItem.getTedLatLng().getLongitude());
+                            Marker marker = new Marker(latLng);
+                            marker.setIcon((OverlayImage.fromResource(R.drawable.bin)));
+                            return marker;
+                        })
+                        .items(new ArrayList<JavaItem>(normalBins.values()))
+                        .markerClickListener(javaItem -> {
+                            infoWindow.setPosition(new LatLng(javaItem.getTedLatLng().getLatitude(),
+                                    javaItem.getTedLatLng().getLongitude()));
+                            infoWindow.open(naverMap);
 
-                                return null;
-                            })
-
-                            .make();
-                } else {
-                    normalCluster.addItems(normalBinArray);
-
-                }
+                            return null;
+                        })
+                        .make();
+                addChildListener();
             }
 
             @Override
             public void onReadPublicBin(ArrayList<JavaItem> publicBinArray) {
-                if (publicCluster == null) {
-                    publicCluster = TedNaverClustering.with(MainActivity.this, naverMap)
-                            .customMarker(javaItem -> {
-                                Marker marker = new Marker(new LatLng(javaItem.getTedLatLng().getLatitude(),
-                                        javaItem.getTedLatLng().getLongitude()));
-                                marker.setIcon((OverlayImage.fromResource(R.drawable.bin)));
-                                return marker;
-                            })
-                            .items(publicBinArray)
-                            .make();
-
-                } else {
-                    publicCluster.addItems(publicBinArray);
-                }
+                publicCluster = TedNaverClustering.with(MainActivity.this, naverMap)
+                        .customMarker(javaItem -> {
+                            Marker marker = new Marker(new LatLng(javaItem.getTedLatLng().getLatitude(),
+                                    javaItem.getTedLatLng().getLongitude()));
+                            marker.setIcon((OverlayImage.fromResource(R.drawable.bin)));
+                            return marker;
+                        })
+                        .items(publicBinArray)
+                        .make();
             }
 
             @Override
             public void onReadLargeBin(ArrayList<JavaItem> largeBinArray) {
-                if (largeCluster == null) {
-                    largeCluster = TedNaverClustering.with(MainActivity.this, naverMap)
-                            .customMarker(javaItem -> {
-                                Marker marker = new Marker(new LatLng(javaItem.getTedLatLng().getLatitude(),
-                                        javaItem.getTedLatLng().getLongitude()));
-                                marker.setIcon((OverlayImage.fromResource(R.drawable.big_bin)));
-                                return marker;
-                            })
-                            .items(largeBinArray)
-                            .make();
-                } else {
-                    publicCluster.addItems(largeBinArray);
-                }
+                largeCluster = TedNaverClustering.with(MainActivity.this, naverMap)
+                        .customMarker(javaItem -> {
+                            Marker marker = new Marker(new LatLng(javaItem.getTedLatLng().getLatitude(),
+                                    javaItem.getTedLatLng().getLongitude()));
+                            marker.setIcon((OverlayImage.fromResource(R.drawable.big_bin)));
+                            return marker;
+                        })
+                        .items(largeBinArray)
+                        .make();
             }
         });
     }
@@ -411,55 +409,59 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
     }
 
     private void readBin(ReadBinCallback callback) {
-        mDatabase.child("bins").child("normal").addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                // Get Post object and use the values to update the UI
-                ArrayList<JavaItem> normalBinArray = new ArrayList<JavaItem>();
-                for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
-                    double lat = postSnapshot.child("lat").getValue(Double.class);
-                    double lng = postSnapshot.child("lng").getValue(Double.class);
-                    String binType = postSnapshot.child("binType").getValue(String.class);
-                    LatLng latLng = new LatLng(lat, lng);
-                    normalBinArray.add(new JavaItem(latLng));
+        mDatabase.child("bins").child("normal").addListenerForSingleValueEvent(new ValueEventListener() {
+           @Override
+           public void onDataChange(@NonNull DataSnapshot snapshot) {
+               // Get Post object and use the values to update the UI
+               HashMap<LatLng, JavaItem> normalBinMap = new HashMap<>();
+               for (DataSnapshot postSnapshot : snapshot.getChildren()) {
+                   if (!(postSnapshot.hasChild("lat") && postSnapshot.hasChild("lng"))) {
+                       continue;
+                   }
+                   double lat = postSnapshot.child("lat").getValue(Double.class);
+                   double lng = postSnapshot.child("lng").getValue(Double.class);
 
-                }
-                callback.onReadNormalBin(normalBinArray);
-            }
+                   LatLng latLngNormal = new LatLng(lat, lng);
+                   normalBinMap.put(latLngNormal, new JavaItem(latLngNormal, postSnapshot.getKey()));
+               }
+               HashMap<LatLng, JavaItem> temp = new HashMap<>(normalBinMap);
+               normalBinsAggregated.putAll(temp);
+               callback.onReadNormalBin(normalBinMap);
+           }
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
                 // Getting Post failed, log a message
                 Log.w("FireBaseData", "loadPost:onCancelled", databaseError.toException());
             }
-        });
+       });
 
-        mDatabase.child("bins").child("public").addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                // Get Post object and use the values to update the UI
-                ArrayList<JavaItem> publicBinArray = new ArrayList<JavaItem>();
-                for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
-                    if (!(postSnapshot.hasChild("lat") && postSnapshot.hasChild("lng"))) {
-                        continue;
+                mDatabase.child("bins").child("public").addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        // Get Post object and use the values to update the UI
+                        ArrayList<JavaItem> publicBinArray = new ArrayList<JavaItem>();
+                        for (DataSnapshot postSnapshot : dataSnapshot.getChildren()) {
+                            if (!(postSnapshot.hasChild("lat") && postSnapshot.hasChild("lng"))) {
+                                continue;
+                            }
+                            double lat = postSnapshot.child("lat").getValue(Double.class);
+                            double lng = postSnapshot.child("lng").getValue(Double.class);
+
+                            LatLng latLngPublic = new LatLng(lat, lng);
+                            publicBinArray.add(new JavaItem(latLngPublic, postSnapshot.getKey()));
+                        }
+                        callback.onReadPublicBin(publicBinArray);
                     }
-                    double lat = postSnapshot.child("lat").getValue(Double.class);
-                    double lng = postSnapshot.child("lng").getValue(Double.class);
 
-                    LatLng latLngPublic = new LatLng(lat, lng);
-                    publicBinArray.add(new JavaItem(latLngPublic));
-                }
-                callback.onReadPublicBin(publicBinArray);
-            }
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+                        // Getting Post failed, log a message
+                        Log.w("FireBaseData", "loadPost:onCancelled", databaseError.toException());
+                    }
+                });
 
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-                // Getting Post failed, log a message
-                Log.w("FireBaseData", "loadPost:onCancelled", databaseError.toException());
-            }
-        });
-
-        mDatabase.child("bins").child("large").addValueEventListener(new ValueEventListener() {
+        mDatabase.child("bins").child("large").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 // Get Post object and use the values to update the UI
@@ -472,7 +474,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
                     double lng = postSnapshot.child("lng").getValue(Double.class);
 
                     LatLng latLngLarge = new LatLng(lat, lng);
-                    largeBinArray.add(new JavaItem(latLngLarge));
+                    largeBinArray.add(new JavaItem(latLngLarge, postSnapshot.getKey()));
                 }
                 callback.onReadLargeBin(largeBinArray);
             }
@@ -481,6 +483,55 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
             public void onCancelled(@NonNull DatabaseError databaseError) {
                 // Getting Post failed, log a message
                 Log.w("FireBaseData", "loadPost:onCancelled", databaseError.toException());
+            }
+        });
+    }
+
+    private void addChildListener() {
+        mDatabase.child("bins").child("normal").addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+                Toast.makeText(MainActivity.this, "더합니다.", Toast.LENGTH_SHORT);
+                if (snapshot.hasChild("lat") && snapshot.hasChild("lng")) {
+                    double lat = snapshot.child("lat").getValue(Double.class);
+                    double lng = snapshot.child("lng").getValue(Double.class);
+
+                    LatLng latLngNormal = new LatLng(lat, lng);
+                    JavaItem javaItem = new JavaItem(latLngNormal, snapshot.getKey());
+                    normalCluster.addItem(javaItem);
+                    normalBinsAggregated.put(latLngNormal, javaItem);
+                }
+                return;
+            }
+
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+                return;
+            }
+
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+                /*Toast.makeText(MainActivity.this, "지웁니다.", Toast.LENGTH_SHORT);
+                if (snapshot.hasChild("lat") && snapshot.hasChild("lng")) {
+                    double lat = snapshot.child("lat").getValue(Double.class);
+                    double lng = snapshot.child("lng").getValue(Double.class);
+
+                    LatLng latLngNormal = new LatLng(lat, lng);
+                    JavaItem javaItem = new JavaItem(latLngNormal, snapshot.getKey());
+                    normalCluster.removeItem(javaItem);
+                    normalBinsAggregated.remove(latLngNormal);
+                }*/
+                return;
+            }
+
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+                return;
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                return;
             }
         });
     }
