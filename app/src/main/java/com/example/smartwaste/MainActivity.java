@@ -342,7 +342,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
                         .customMarker(javaItem -> {
                             Marker marker = new Marker(new LatLng(javaItem.getTedLatLng().getLatitude(),
                                     javaItem.getTedLatLng().getLongitude()));
-                            marker.setIcon((OverlayImage.fromResource(R.drawable.bin)));
+                            marker.setIcon((OverlayImage.fromResource(R.drawable.public_bin)));
                             return marker;
                         })
                         .items(publicBinArray)
