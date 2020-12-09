@@ -16,4 +16,5 @@
     <string name="go_back">뒤로가기</string>
     <string name="save_complete">저장을 완료했습니다.</string>
     <string name="save_fail">저장을 실패했습니다.</string>
+    <string name="report_received">신고를 접수했습니다.</string>
 </resources>
