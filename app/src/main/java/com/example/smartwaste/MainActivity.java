@@ -292,7 +292,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
         normalCluster.removeItem(javaItem);
         normalBinsAggregated.remove(latLng);
         infoWindow.close();
-        Toast.makeText(MainActivity.this, "신고가 접수됐습니다.", Toast.LENGTH_SHORT).show();
+        Toast.makeText(MainActivity.this, R.string.report_received, Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -342,7 +342,7 @@ public class MainActivity<NMapLocationManager> extends AppCompatActivity
                         .customMarker(javaItem -> {
                             Marker marker = new Marker(new LatLng(javaItem.getTedLatLng().getLatitude(),
                                     javaItem.getTedLatLng().getLongitude()));
-                            marker.setIcon((OverlayImage.fromResource(R.drawable.bin)));
+                            marker.setIcon((OverlayImage.fromResource(R.drawable.public_bin)));
                             return marker;
                         })
                         .items(publicBinArray)

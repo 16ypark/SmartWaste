@@ -15,4 +15,6 @@
 <string name="go_back">Go back</string>
 <string name="save_complete">Save is complete.</string>
 <string name="save_fail">Save failed.</string>
+<string name="report_received">Report received.</string>
+
 </resources>
